@@ -6,48 +6,54 @@ Overview:
 This is the main file for running the camera control system.
 """
 
-import numpy as np
-import cv2 as cv
+import cv2 #OpenCV Module
+import time
+import mediapipe as mp #Hand Tracking Module
 
-# initialize last frame
-last_frame = None
+cap = cv2.VideoCapture(0)
 
-# initialize camera
-cap = cv.VideoCapture(0)
+mpHands = mp.solutions.hands
+hands = mpHands.Hands(static_image_mode=False,
+                      max_num_hands=2,
+                      min_detection_confidence=0.5,
+                      min_tracking_confidence=0.5)
+mpDraw = mp.solutions.drawing_utils
 
-# check if camera is opened
-if not cap.isOpened():
-    print("Cannot open camera")
-    exit()
-    
+pTime = 0
+cTime = 0
+backSub = cv2.createBackgroundSubtractorKNN(history=200)
+
 while True:
-    # Capture frame-by-frame
-    ret, frame = cap.read()
-    # if frame is read correctly ret is True
-    if not ret:
-        print("Can't receive frame (stream end?). Exiting ...")
+    success, frame = cap.read()                                                           # Read the image from the camera
+    frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)                                       # Convert the image to RGB
+    results = hands.process(frameRGB)                                                     # Process the image
+
+
+    if results.multi_hand_landmarks:
+        for handLms in results.multi_hand_landmarks:                                    # Loop through all the hands
+            for id, lm in enumerate(handLms.landmark):                                  # Loop through all the landmarks
+                h, w, c = frame.shape                                                     # Get the height, width and channel of the image
+                cx, cy = int(lm.x *w), int(lm.y*h)                                      # Get the x and y coordinates of the landmark
+                cv2.putText(frame,str(id), (cx,cy),                                       # Display the index of the landmark
+                            cv2.FONT_HERSHEY_PLAIN, 1, (255,0,255), 1) 
+                cv2.circle(frame, (cx,cy), 3, (255,0,255), cv2.FILLED)                    # Draw a circle on the landmark
+            """Calculates the distance between two landmarks: 4 and 8"""
+            x1, y1 = handLms.landmark[4].x*w, handLms.landmark[4].y*h                   # Get the x and y coordinates of the landmark 4
+            x2, y2 = handLms.landmark[8].x*w, handLms.landmark[8].y*h                   # Get the x and y coordinates of the landmark 8
+            length = ((x2-x1)**2 + (y2-y1)**2)**0.5                                     # Calculate the distance between the two landmarks
+            print(length)                                                               # Print the distance
+            mpDraw.draw_landmarks(frame, handLms, mpHands.HAND_CONNECTIONS)               # Draw the connections between the landmarks
+
+
+    """FPS Calculation"""
+    cTime = time.time()                                                                 # Get the current time                               
+    fps = 1/(cTime-pTime)                                                               # Calculate the fps
+    pTime = cTime                                                                       # Set the previous time to the current time
+    """Open Source Computer Vision Display"""
+    cv2.putText(frame,str(int(fps)), (10,70), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,255), 3)  # Display the fps on the image
+
+    cv2.imshow("Image", frame)                                                            # Display the image
+    cv2.waitKey(1)                                                                      # Wait for 1ms                
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):                                               # If the user presses q, then quit windows
         break
-    # Our operations on the frame come here
-    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-
-    
-    # Display the resulting frame
-    cv.imshow('Control', frame)
-    cv.imshow('Gray', gray)
-    if cv.waitKey(1) == ord('q'):
-        break
-
-    # compare last frame with current frame, display the difference on a new window with black and white
-    if last_frame is not None:
-        diff = cv.absdiff(last_frame, frame)
-        cv.imshow('Motion Tracking', diff)
-
-
-    # save current frame as last frame
-    last_frame = frame
-
-    
-
-# When everything done, release the captureq
-cap.release()
-cv.destroyAllWindows()
