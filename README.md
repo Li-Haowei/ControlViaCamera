@@ -7,3 +7,9 @@ Control computer via camera hand tracking:
 - time
 - mediapipe
 - pynput
+
+# To install libraries:
+- pip install -r requirements.txt
+
+# To run the program
+Run main.py
