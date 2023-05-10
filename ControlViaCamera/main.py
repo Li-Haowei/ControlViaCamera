@@ -18,7 +18,7 @@ class HandControl():
         initialize everything needed to run this program, and selecting the desired camera to work with
         """
         try:
-            self.cap = cv2.VideoCapture(default_camera)
+            self.__cap = cv2.VideoCapture(default_camera) # private to prevent people hacking into the camera
         except:
             print("Camera not found")
             exit()
@@ -49,6 +49,24 @@ class HandControl():
         self.largest = 1
         self.smallest = 0
         self.fps = 0
+        self.current_camera = default_camera
+
+    def __getCap(self):
+        """
+        Return the camera
+        """
+        return self.__cap # private to prevent people hacking into the camera
+
+    def __repr__(self):
+        """
+        Return the string representation of the class
+        """
+        return "HandControl()"
+    def __str__(self):
+        """
+        Return the string representation of the class
+        """
+        return "HandControl()"
     
     def setLargest(self, num):
         """
@@ -209,7 +227,7 @@ class HandControl():
         """
         while True:
             try:
-                success, frame = self.cap.read()                                                         # Read the image from the camera
+                success, frame = self.__getCap().read()                                                         # Read the image from the camera
             except:
                 print("Camera mulfunction")
                 exit()
